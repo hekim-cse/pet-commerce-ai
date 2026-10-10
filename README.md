@@ -4,13 +4,31 @@
 
 골라주개냥은 반려동물 상품을 선택하고 구매하는 과정을 돕는 커머스 서비스입니다. 이 저장소는 세 기능의 데이터 처리, 모델 학습·평가, 추론 API와 배치, 서비스 연동 계약을 관리합니다.
 
+<br>
+
 ## 🎯 해결하려는 문제
 
 | 사용자 질문 | 기능 | 제공하는 정보 |
 | --- | --- | --- |
 | 구매한 상품을 언제 다시 구매할까? | 재구매 예측 | 마지막 구매 후 경과 시간을 반영한 향후 30일 이내 재구매 확률 |
-| 내 반려동물에게 어떤 상품을 추천할까? | 개인화 추천 | 프로필·구매 이력·리뷰 기반 홈 추천 및 대체 상품 목록 |
+| 내 반려동물에게 어떤 상품을 추천할까? | 개&#8288;인&#8288;화&#8288;&nbsp;&#8288;추&#8288;천 | 프로필·구매 이력·리뷰 기반 홈 추천 및 대체 상품 목록 |
 | 이 상품의 성분을 어떻게 해석할까? | 영양성분 분석 | 영양 기준 비교, 알레르기 충돌 및 종·생애주기 판정 |
+
+<br>
+
+## 👥 팀원과 담당 범위
+
+AI 기능은 세 명이 기능별로 나누어 구현했습니다. 각 팀원의 주요 담당 범위는 다음과 같습니다.
+
+| 팀원 | 주 담당 | 주요 구현 |
+| --- | --- | --- |
+| [김&#8288;형&#8288;은](https://github.com/hekim-cse) | 데&#8288;이&#8288;터&#8288;·&#8288;재&#8288;구&#8288;매&#8288;&nbsp;&#8288;예&#8288;측 | 공개 구매 데이터 분석, 유효 구매 사건·시점 피처 구성, AFT·LightGBM 학습과 평가, 조건부 확률 추론, SHADOW 배치·멱등 적재·목계정 조회 경계 |
+| [서&#8288;지&#8288;우](https://github.com/seojiwoo23) | 개인화 추천 | 정형 리뷰 별점 처리, 프로필·구매 이력 유사도, DeepFM 학습·추천, 홈·대체 추천 API, 서비스 DB 연동과 모델 S3 로딩 |
+| [성&#8288;화&#8288;섭](https://github.com/Aku-Korea) | 영&#8288;양&#8288;성&#8288;분&#8288;&nbsp;&#8288;분&#8288;석&#8288;·&#8288;A&#8288;I&#8288;&nbsp;&#8288;연&#8288;동 | 입력·근거 정규화, 영양·알레르기·급여량 규칙, 분석·비교 API, Service DB 어댑터, 인증·회귀 검증 및 파트 간 계약 정합화 |
+
+대표 구현 이력: [재구매 배치·조회](https://github.com/urineun-jigeum-bildeujung/ai/pull/303) / [추천 DB·API](https://github.com/urineun-jigeum-bildeujung/ai/pull/143) / [영양 분석 Mock·입력 경계](https://github.com/urineun-jigeum-bildeujung/ai/pull/308)
+
+<br>
 
 ## 🧩 서비스 구조
 
@@ -29,9 +47,13 @@ flowchart LR
 
 AI 팀의 구현 범위는 데이터 처리, 모델·규칙, 추론과 결과 저장, API 계약 및 테스트입니다. 클라우드 배포와 실행, Gateway 라우팅, 프론트엔드 화면 연결은 다른 서비스 파트와 협업하며, 코드 구현과 실제 배포 검증을 구분해 기록합니다.
 
+<br>
+
 ## 🔍 핵심 구현과 설계
 
 ### 1. 재구매 예측 — 경과 시간을 반영한 조건부 확률
+
+**설계 판단:** 아직 재구매하지 않은 이력도 관측 정보로 활용하고, 구매 직후와 시간이 지난 시점의 확률을 구분합니다.
 
 구매 이력의 마지막 주문은 관측 기간이 끝날 때까지 다음 구매가 확인되지 않을 수 있습니다. 이를 미구매 확정으로 처리하지 않고 **중도절단을 고려하는 XGBoost AFT**로 구매 간격을 모델링했습니다.
 
@@ -44,7 +66,11 @@ AI 팀의 구현 범위는 데이터 처리, 모델·규칙, 추론과 결과 �
 
 관련 문서: [재구매 파트 개요·모델 평가](repurchase/README.md) / [학습·추론 및 실행](repurchase/data_analysis/README.md) / [모델 결정](repurchase/DEMO_MODEL_DECISION.md) / [추론 계약](repurchase/INFERENCE_CONTRACT.md) / [DB 계약](repurchase/database/README.md)
 
+<br>
+
 ### 2. 개인화 추천 — 프로필, 리뷰 별점과 구매 이력의 결합
+
+**설계 판단:** 사용자가 직접 입력하는 정형 별점을 활용해 텍스트에서 속성을 추정하는 단계를 줄이고, 구매 이력이 없는 경우에도 같은 추천 구조를 사용합니다.
 
 반려동물·상품 피처를 활용하는 **DeepFM 추천 파이프라인**에 리뷰 작성자 프로필 유사도와 구매 이력을 반영합니다. 홈 추천과 상품 상세의 대체 추천을 각각 제공합니다.
 
@@ -57,7 +83,11 @@ AI 팀의 구현 범위는 데이터 처리, 모델·규칙, 추론과 결과 �
 
 관련 코드·문서: [추천 파이프라인](recommendation/endtoend/src/pipeline.py) / [API](recommendation/endtoend/src/api/main.py) / [인증·소유권 계약](recommendation/endtoend/docs/gateway_ownership_contract.md) / [알레르기 처리와 검증](recommendation/endtoend/docs/integration_followup_20261005.md)
 
+<br>
+
 ### 3. 영양성분 분석 — 근거를 정규화하는 규칙 엔진
+
+**설계 판단:** 서비스 DB 형식과 판정 로직 사이에 정규화 계층을 두고, 영양·안전 상태를 분리해 근거 부족이 적합 판정으로 이어지지 않도록 합니다.
 
 상품의 보증성분과 원재료를 **Canonical Input**으로 정규화하고, NIAS reference 비교와 안전성 규칙을 적용합니다. 동일한 입력·규칙 버전·reference 버전에서 동일한 결과를 반환하는 결정론적 구조입니다.
 
@@ -70,6 +100,8 @@ AI 팀의 구현 범위는 데이터 처리, 모델·규칙, 추론과 결과 �
 
 관련 문서: [기능·API·실행](nutrition/README.md) / [입력 계약](nutrition/docs/canonical_input_contract.md) / [서비스 통합 구조](nutrition/docs/service_integration_architecture.md)
 
+<br>
+
 ## ✅ 서비스 검증
 
 아래는 저장소에 기록된 평가·검증 결과입니다. 모델 품질 평가, 로컬 계약 검증, 클라우드 적재 확인은 서로 다른 검증 범위입니다.
@@ -81,6 +113,8 @@ AI 팀의 구현 범위는 데이터 처리, 모델·규칙, 추론과 결과 �
 | 영양 분석 Mock 보완 | 2026-10-06 기록 기준 테스트 632개, 로컬 HTTP 13요청·58개 assertion 통과 | 보관 스냅샷과 합성 입력 사용. 실제 DB·Gateway·Pod 검증과 별도 |
 
 근거: [SHADOW 배치 검증](repurchase/data_analysis/SHADOW_VALIDATION_HANDOFF.md) / [추천 회귀 기록](recommendation/endtoend/docs/gateway_ownership_contract.md) / [영양 분석 검증 기록](nutrition/docs/service_evidence_gap_resolution_20261006.md)
+
+<br>
 
 ## 🛠️ 기술 스택
 
@@ -100,6 +134,8 @@ AI 팀의 구현 범위는 데이터 처리, 모델·규칙, 추론과 결과 �
 | CI·빌드·배포 연동 | GitHub Actions, Docker, Jenkins |
 | 추천 모델 아티팩트 관리 | Amazon S3 |
 
+<br>
+
 ## 📁 저장소 구조
 
 ```text
@@ -117,6 +153,8 @@ AI 팀의 구현 범위는 데이터 처리, 모델·규칙, 추론과 결과 �
 ├── .github/                  # CI, 이슈 양식 및 협업 가이드
 └── Jenkinsfile               # 서비스 빌드·배포 파이프라인
 ```
+
+<br>
 
 ## 🚀 로컬 실행
 
@@ -158,6 +196,8 @@ DeepFM 모델 아티팩트, 데이터 소스와 Gateway 인증 설정이 필요�
 [실행 문서](repurchase/data_analysis/README.md)에 데이터 준비, 학습·평가, 배치 명령과 테스트 방법을 정리했습니다. DB 쓰기 허용 조건과 결과 상태는 [클라우드 데이터 계약](repurchase/CLOUD_DATA_CONTRACT.md)을 따릅니다.
 
 </details>
+
+<br>
 
 ## 🤝 협업과 남은 과제
 
